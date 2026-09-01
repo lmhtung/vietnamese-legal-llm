@@ -1,0 +1,66 @@
+# Qwen3.5-4B-Base continued pre-training on raw Vietnamese legal documents.
+# Relative paths are resolved from this file's directory.
+
+model:
+  name: Qwen/Qwen3.5-4B-Base
+  max_seq_length: 20000
+  # This pipeline defaults to 16-bit LoRA. Enable exactly one load mode.
+  load_in_4bit: false
+  load_in_16bit: true
+  trust_remote_code: true
+
+data:
+  path: datasets/vietnamese_legal_documents_vhtd_p95_20k
+  text_field: text
+  num_proc: 8
+  tokenize_batch_size: 32
+  # Set these to small positive values only for smoke tests.
+  max_train_samples: null
+  max_validation_samples: null
+
+lora:
+  r: 16
+  alpha: 16
+  dropout: 0.0
+  # all-linear includes Qwen3.5 Gated DeltaNet projections.
+  # standard targets q/k/v/o and gate/up/down projections only.
+  target_modules: all-linear
+  use_rslora: false
+
+optimization:
+  train_batch_size: 1
+  eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  num_train_epochs: 1.0
+  # A positive value overrides num_train_epochs.
+  max_steps: -1
+  # Conservative starting point for long-corpus LoRA CPT.
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+  optim: adamw_8bit
+
+evaluation:
+  # Reduce this if validation metrics run out of VRAM.
+  metric_logits_chunk_size: 256
+  eval_steps: 500
+  skip_baseline_eval: false
+
+checkpoint:
+  output_dir: outputs/qwen35_4b_legal_cpt_p95_20k_r16
+  save_total_limit: 3
+  # null starts fresh; "auto" selects the newest checkpoint-* directory.
+  resume_from_checkpoint: null
+
+runtime:
+  seed: 3407
+  logging_steps: 5
+  disable_tqdm: false
+  pad_to_multiple_of: 8
+
+export:
+  merge_after_train: false
+  # null resolves to <output_dir>/merged_16bit_best at export time.
+  merged_output_dir: null
